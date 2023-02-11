@@ -1,0 +1,422 @@
+// jshint ignore: start
+// OPen and Blind Checks butchered to work with PF2E Community sheet
+// Script initially created by Stephen S, with modifications made by the Aaron.
+// Special thanks to NickOlivo and Vince to guide me on the right path.
+// Updated to PF2E by Shaxis.
+// Create a token action macro called "OpenChecks" with the action "!OpenChecks"
+// Create a token action macro called "BlindChecks" with the action "!BlindChecks"
+// Give all your players access to both.
+const OpenBlindChecks = (() => {
+  // 'use strict';
+  const buildTable = (values) => {
+    // sets a default value for attributes
+    const getMod = (g, n) => {
+      return g ? g.mod : n;
+    };
+
+    const s = {
+      div:
+        `display: block; ` +
+        `min-height: 60px; ` +
+        `margin: 5px 0 0 -30px; ` +
+        `padding: 0; ` +
+        `border: 0 none; ` +
+        `border-radius: 6px 6px 6px 6px; ` +
+        `box-shadow: 2px 2px 4px 2px #000; ` +
+        `background-color: #fff; ` +
+        `background-image: url('${values.blind ? 'https://i.imgur.com/UCIUXyr.jpg' : 'https://i.imgur.com/vjL1blE.jpg'}'); ` +
+        `text-align: left; ` +
+        `white-space: pre-wrap;`,
+      tbl_top: `width: 98%; margin: auto;`,
+      img: `background-color: transparent; border: none ;max-height: 60px; padding: 5px; margin: auto; !important`,
+      name: `font-weight: bold; font-size: 120%; font-style: italic; text-align: center; padding: 0 2px 0 0;`,
+      blurb: `font-style: italic; text-align: center; padding: 0 2px 0 0;`,
+      rolls: `text-align: center; line-height: 16px; padding: 0 2px 0 0;`,
+      inlinestyle:
+        `display: inline-block; ` +
+        `min-width: 16px; ` +
+        `min-height: 16px; ` +
+        `background: white; ` +
+        `border: 1px solid black; ` +
+        `font-style: normal; ` +
+        `text-align: center;  ` +
+        `line-height: 16px;  ` +
+        `padding: 1px;` +
+        `color: black;`,
+      inlineclass: `inlinerollresult showtip tipsy-n-right`,
+      tbl_abl: `width: 95%; margin: auto;`,
+      th: `font-weight: bold; text-align: center; padding: 0 2px 0 0;`,
+      td: `text-align: center; line-height: 1.5em; padding: 0 2px 0 0;`,
+      tbl_skl: `width: 98%; margin: auto;`,
+      tr_even: `background-color: ${values.blind ? '#cfd2d0' : '#e0e5c1'};`,
+      tr_odd: `background-color: ${values.blind ? '#eeeeee' : '#ffffff'};`,
+      skill: `font-size: 85%; white-space: nowrap; max-width: 8em; min-width: 7em; overflow: hidden; text-overflow: ellipsis;`,
+    };
+
+    const passive = `DC:&nbsp;` +
+        `<span class="${s.inlineclass}" style="${s.inlinestyle}" title="10 + ${getMod(values.mods.perception)}">` +
+                `${10 + getMod(values.mods.perception)}` +
+            `</span>`;
+            
+    const profession = `DC:&nbsp;` +
+        `<span class="${s.inlineclass}" style="${s.inlinestyle}" title="${getMod(values.mods.class_dc)}">` +
+                `${getMod(values.mods.class_dc)}` +
+            `</span>`;
+            
+    const inlineRoll = (props) => {
+      return `<span class="${s.inlineclass}" style="${s.inlinestyle}" title="${props.t1}">${props.r1}</span>`;
+    };
+            
+    const rawRoll = inlineRoll({
+      t1: `Rolling 1d20(${values.frst})`,
+      r1: values.frst,
+    });
+
+    const abilityRow = (oe, l, m, l2, m2, l3, m3) => {
+      return (
+        `<tr style="${oe}">` +
+        `<td style="display: table; width: 100%;text-align: center;">` +
+        `<span style="${s.td} display: inline-block; width: 20%;">` +
+        `${l}` +
+        `</span>` +
+        `<span style="${s.rolls}">` +
+        `${inlineRoll({
+          t1: `Rolling 1d20(${values.frst})+${m}`,
+          r1: values.frst + m,
+        })}` +
+        `</span>` +
+        // 2nd column
+        `<span style="${s.td} display: inline-block; width: 20%;">` +
+        `${l2}` +
+        `</span>` +
+        `<span style="${s.rolls}">` +
+        `${inlineRoll({
+          t1: `Rolling 1d20(${values.frst})+${m2}`,
+          r1: values.frst + m2,
+        })}` +
+        `</span>` +
+        // 3rd column
+        `<span style="${s.td} display: inline-block; width: 20%;">` +
+        `${l3}` +
+        `</span>` +
+        `<span style="${s.rolls}">` +
+        `${inlineRoll({
+          t1: `Rolling 1d20(${values.frst})+${m3}`,
+          r1: values.frst + m3,
+        })}` +
+        `</span>` +
+        `</td>` +
+        `</tr>`
+      );
+    };
+    // conditional added below to solve attribute name case differences
+    const abilityList = [
+      {
+        oddeven: s.tr_even,
+        label: 'STR',
+        mod: getMod(values.mods['strength_modifier'], 0),
+
+        label2: 'INT',
+        mod2: getMod(values.mods['intelligence_modifier'], 0),
+
+        label3: 'DEX',
+        mod3: getMod(values.mods['dexterity_modifier'], 0),
+      },
+      {
+        oddeven: s.tr_odd,
+        label: 'WIS',
+        mod: getMod(values.mods['wisdom_modifier'], 0),
+
+        label2: 'CON',
+        mod2: getMod(values.mods['constitution_modifier'], 0),
+
+        label3: 'CHA',
+        mod3: getMod(values.mods['charisma_modifier'], 0),
+      },
+    ];
+
+    const skillRow = (oe, l, m, l2, m2) => {
+      return (
+        `<tr style="${oe}">` +
+        `<td style="${s.td} ` +
+        `${s.skill}">` +
+        `${l}` +
+        `</td>` +
+        `<td style="${s.rolls}">` +
+        `${inlineRoll({
+          t1: `Rolling 1d20(${values.frst})+${m}`,
+          r1: values.frst + m,
+        })}` +
+        `</td>` +
+        // 2nd column
+        `<td style="${s.td} ` +
+        `${s.skill}">` +
+        `${l2}` +
+        `</td>` +
+        `<td style="${s.rolls}">` +
+        `${inlineRoll({
+          t1: `Rolling 1d20(${values.frst})+${m2}`,
+          r1: values.frst + m2,
+        })}` +
+        `</td>` +
+        `</tr>`
+      );
+    };
+    // conditional added below to solve attribute name case differences
+    const skillList = [
+      {
+        oddeven: s.tr_odd,
+        label: 'Acrobatics',
+        mod: getMod(values.mods['acrobatics'], 0) || getMod(values.mods['acrobatics'], 0),
+              
+        label2: 'Arcana',
+        mod2: getMod(values.mods['arcana'], 0) || getMod(values.mods['arcana'], 0),
+      },
+      {
+        oddeven: s.tr_even,
+        label: 'Athletics',
+        mod: getMod(values.mods['athletics'], 0) || getMod(values.mods['athletics'], 0),
+
+        label2: 'Crafting',
+        mod2: getMod(values.mods['crafting'], 0) || getMod(values.mods['crafting'], 0),
+      },
+      {
+        oddeven: s.tr_odd,
+        label: 'Deception',
+        mod: getMod(values.mods['deception'], 0) || getMod(values.mods['deception'], 0),
+
+        label2: 'Diplomacy',
+        mod2: getMod(values.mods['diplomacy'], 0) || getMod(values.mods['diplomacy'], 0),
+      },
+      {
+        oddeven: s.tr_even,
+        label: 'Intimidation',
+        mod: getMod(values.mods['intimidation'], 0) || getMod(values.mods['intimidation'], 0),
+
+        label2: 'Medicine',
+        mod2: getMod(values.mods['medicine'], 0) || getMod(values.mods['medicine'], 0),
+      },
+      {
+        oddeven: s.tr_odd,
+        label: 'Nature',
+        mod: getMod(values.mods['nature'], 0) || getMod(values.mods['nature'], 0),
+
+        label2: 'Occultism',
+        mod2: getMod(values.mods['occultism'], 0) || getMod(values.mods['occultism'], 0),
+      },
+      {
+        oddeven: s.tr_even,
+        label: 'Performance',
+        mod: getMod(values.mods['performance'], 0) || getMod(values.mods['performance'], 0),
+
+        label2: 'Religion',
+        mod2: getMod(values.mods['religion'], 0) || getMod(values.mods['religion'], 0),
+      },
+      {
+        oddeven: s.tr_odd,
+        label: 'Society',
+        mod: getMod(values.mods['society'], 0) || getMod(values.mods['society'], 0),
+
+        label2: 'Stealth',
+        mod2: getMod(values.mods['stealth'], 0) || getMod(values.mods['stealth'], 0),
+      },
+      {
+        oddeven: s.tr_even,
+        label: 'Survival',
+        mod: getMod(values.mods['survival'], 0) || getMod(values.mods['survival'], 0),
+
+        label2: 'Thievery',
+        mod2: getMod(values.mods['thievery'], 0) || getMod(values.mods['thievery'], 0),
+      },
+    ];
+
+    values.message =
+      `` +
+      `<div style="${s.div}">` +
+      `<table style="${s.tbl_top}">` +
+      `<tr>` +
+      `<td rowspan="2">` +
+      `<img style="${s.img}" src="${values.url}">` +
+      `</td>` +
+      `<td style="${s.name}">` +
+      `${values.name}` +
+      `${rawRoll}` +
+      `</td>` +
+      `</tr>` +
+      `<tr>` +
+      `<td style="${s.rolls}">` +
+      `Perception ${passive}` +
+      `Class ${profession}` +
+      `</td>` +
+      `</tr>` +
+      `<tr>` +  
+      `</table>` +
+      `<table style="${s.tbl_abl} margin-top: -4px; border-top: 2px solid silver; ">`;
+
+    abilityList.forEach((row) => {
+      values.message += abilityRow(row.oddeven, row.label, row.mod, row.label2, row.mod2, row.label3, row.mod3);
+    });
+
+    // Saves
+    values.message =
+      `${values.message}<tr>` +
+      `<td style="display: table; width: 100%;text-align: center;">` +
+      `<span style="${s.td} display: inline-block; width: 20%;">` +
+      `Fort` +
+      `</span>` +
+      `<span style="${s.rolls}">` +
+      `${inlineRoll({
+        t1: `Rolling 1d20(${values.frst}) + ${getMod(values.mods.saving_throws_fortitude)}`,
+        r1: values.frst + parseInt(`${getMod(values.mods.saving_throws_fortitude)}`),
+      })}` +
+      `</span>` +
+      `<span style="${s.td} display: inline-block; width: 20%;">` +
+      `Ref` +
+      `</span>` +
+      `<span style="${s.rolls}">` +
+      `${inlineRoll({
+        t1: `Rolling 1d20(${values.frst}) + ${getMod(values.mods.saving_throws_reflex)}`,
+        r1: values.frst + parseInt(`${getMod(values.mods.saving_throws_reflex)}`),
+      })}` +
+      `</span>` +
+      `<span style="${s.td} display: inline-block; width: 20%;">` +
+      `Will` +
+      `</span>` +
+      `<span style="${s.rolls}">` +
+      `${inlineRoll({
+        t1: `Rolling 1d20(${values.frst}) + ${getMod(values.mods.saving_throws_will)}`,
+        r1: values.frst + parseInt(`${getMod(values.mods.saving_throws_will)}`),
+      })}` +
+      `</span>` +
+      `</td>` +
+      `</tr>` +
+      `</table>` +
+      `<hr style="margin: 2px 7px 4px 7px; border-bottom: 2px solid silver; ">` +
+      `<table style="${s.tbl_abl}">`;
+
+    skillList.forEach((row) => {
+      values.message += skillRow(row.oddeven, row.label, row.mod, row.label2, row.mod2);
+    });
+
+    values.message = `${values.message}</table><br></div>`;
+
+    return values.message;
+  };
+
+  const getAttributes = (values) => {
+    // get attribute names in upper/lower case
+    // HL import can create attribute names that differ from the sheet defaults
+    // Include ALL attribute names that are being read
+    const attrNames = [
+      'class_dc',
+      'perception',
+      'strength_modifier',
+      'dexterity_modifier',
+      'constitution_modifier',
+      'intelligence_modifier',
+      'wisdom_modifier',
+      'charisma_modifier',
+      'saving_throws_fortitude',
+      'saving_throws_reflex',
+      'saving_throws_will',
+      'acrobatics',
+      'arcana',
+      'athletics',
+      'crafting',
+      'deception',
+      'diplomacy',
+      'intimidation',
+      'medicine',
+      'nature',
+      'occultism',
+      'performance',
+      'religion',
+      'society',
+      'stealth',
+      'survival',
+      'thievery',
+    ];
+
+    // values.attr = filterObjs((a) => {
+    //   if (a.get('characterid') === values.cid && a.get('type') === 'attribute' && attrNames.includes(a.get('name'))) {
+    //     return true;
+    //   }
+    //   return false;
+    // });
+
+    // values.mods = {};
+
+    // values.attr.forEach((a) => {
+    //   const key = a.get('name').replace(/-/g, '_'); // dash to '_' if you need the attr name later(you will have to convert it back first.)
+    //   const mod = a.get('current');
+    //   const lbl = a
+    //     .get('name')
+    //     .replace(/-mod/gi, '') // '-mod' to nothing
+    //     .replace(/_bonus/gi, '') // '-bonus' to nothing
+    //     .replace(/-/g, ' '); // dashes to spaces
+    //   values.mods[a.get('name')] = {
+    //     key: a.get('name'),
+    //     mod: Number(mod) || ~~mod || 0,
+    //     lbl,
+    //   };
+    // });
+
+    values.mods = attrNames.reduce(
+      (m, n) => ({
+        ...m,
+        [n]: {
+          key: n,
+          mod: Number(getAttrByName(values.cid, n)) || ~~getAttrByName(values.cid, n) || 0,
+          lbl: n
+            .replace(/_mod/gi, '')
+            .replace(/_bonus/gi, '')
+            .replace(/_/g, ' '),
+        },
+      }),
+      {}
+    );
+
+    sendChat('QuantumRoll', '[[1d20]]', (qr) => {
+      values.frst = qr[0].inlinerolls[0].results.rolls[0].results[0].v;
+      buildTable(values);
+      if (values.blind) {
+        sendChat(values.who, `/w gm ${values.message}`);
+        sendChat('API - QuantumRoll', `/w ${values.who} Secret roll sent to GM. I'm sure its fine...`);
+      } else {
+        sendChat(values.who, values.message);
+      }
+    });
+  };
+
+  const handleInput = (msg) => {
+    const values = {};
+    values.msg = msg;
+    values.tok = getObj(values.msg.selected[0]._type, values.msg.selected[0]._id);
+
+    values.cha = getObj('character', values.tok.get('represents'));
+
+    if (values.cha) {
+      values.cid = values.cha.get('id');
+      const imgsrc = values.tok.get('imgsrc');
+      values.url = imgsrc === '/images/character.png' ? 'https://i.imgur.com/MpqETqe.png' : imgsrc;
+      values.name = values.cha.get('name');
+      values.blind = msg.content.startsWith('!BlindChecks');
+      values.who = values.msg.who.replace(/\s*\(GM\)/, '');
+    }
+    getAttributes(values);
+  };
+
+  on('ready', () => {
+    on('chat:message', (msg_orig) => {
+      if (
+        msg_orig.type === 'api' &&
+        (msg_orig.content.startsWith('!OpenChecks') || msg_orig.content.startsWith('!BlindChecks')) &&
+        msg_orig.selected &&
+        msg_orig.selected.length === 1
+      ) {
+        handleInput(_.clone(msg_orig));
+      }
+    });
+  });
+  return {};
+})();
